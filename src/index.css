@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Updated root colors to use dark theme by default with blue tones */
+  --background: 20 14% 8%;
+  --foreground: 220 10% 95%;
+  --card: 220 14% 10%;
+  --card-foreground: 220 10% 95%;
+  --popover: 220 14% 10%;
+  --popover-foreground: 220 10% 95%;
+  --primary: 220 100% 60%;
+  --primary-foreground: 220 14% 8%;
+  --secondary: 220 10% 15%;
+  --secondary-foreground: 220 10% 95%;
+  --muted: 220 10% 15%;
+  --muted-foreground: 220 5% 65%;
+  --accent: 220 15% 20%;
+  --accent-foreground: 220 10% 95%;
+  --destructive: 25 95% 50%;
+  --destructive-foreground: 220 10% 95%;
+  --border: 220 15% 20%;
+  --input: 220 15% 20%;
+  --ring: 220 100% 60%;
+  --chart-1: 220 100% 60%;
+  --chart-2: 240 90% 65%;
+  --chart-3: 200 80% 55%;
+  --chart-4: 260 85% 70%;
+  --chart-5: 280 80% 75%;
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: 20 14% 8%;
+  --foreground: 220 10% 95%;
+  --card: 220 14% 10%;
+  --card-foreground: 220 10% 95%;
+  --popover: 220 14% 10%;
+  --popover-foreground: 220 10% 95%;
+  --primary: 220 100% 60%;
+  --primary-foreground: 220 14% 8%;
+  --secondary: 220 10% 15%;
+  --secondary-foreground: 220 10% 95%;
+  --muted: 220 10% 15%;
+  --muted-foreground: 220 5% 65%;
+  --accent: 220 15% 20%;
+  --accent-foreground: 220 10% 95%;
+  --destructive: 25 95% 50%;
+  --destructive-foreground: 220 10% 95%;
+  --border: 220 15% 20%;
+  --input: 220 15% 20%;
+  --ring: 220 100% 60%;
+  --chart-1: 220 100% 60%;
+  --chart-2: 240 90% 65%;
+  --chart-3: 200 80% 55%;
+  --chart-4: 260 85% 70%;
+  --chart-5: 280 80% 75%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom keyframes for sign-in page */
+@keyframes fadeSlideIn {
+  to {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translateY(0px);
+  }
+}
+
+@keyframes slideRightIn {
+  to {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translateX(0px);
+  }
+}
+
+@keyframes testimonialIn {
+  to {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translateY(0px) scale(1);
+  }
+}
+
+@layer utilities {
+  .animate-element {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateY(8px);
+    animation: fadeSlideIn 0.6s ease forwards;
+  }
+
+  .animate-slide-right {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateX(-12px);
+    animation: slideRightIn 0.8s ease forwards;
+  }
+
+  .animate-testimonial {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(10px) scale(0.98);
+    animation: testimonialIn 0.7s ease forwards;
+  }
+
+  .animate-delay-100 { animation-delay: 0.1s; }
+  .animate-delay-200 { animation-delay: 0.2s; }
+  .animate-delay-300 { animation-delay: 0.3s; }
+  .animate-delay-400 { animation-delay: 0.4s; }
+  .animate-delay-500 { animation-delay: 0.5s; }
+  .animate-delay-600 { animation-delay: 0.6s; }
+  .animate-delay-700 { animation-delay: 0.7s; }
+  .animate-delay-800 { animation-delay: 0.8s; }
+  .animate-delay-900 { animation-delay: 0.9s; }
+  .animate-delay-1000 { animation-delay: 1s; }
+  .animate-delay-1200 { animation-delay: 1.2s; }
+  .animate-delay-1400 { animation-delay: 1.4s; }
+}
