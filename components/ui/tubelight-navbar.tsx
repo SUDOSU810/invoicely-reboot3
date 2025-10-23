@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { Link } from "react-router-dom"
-import { type LucideIcon } from "lucide-react"
+import { Link, useNavigate } from "react-router-dom"
+import { type LucideIcon, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/lib/hooks/useAuth"
+import { toast } from "sonner"
 
 interface NavItem {
   name: string
@@ -18,6 +20,18 @@ interface NavBarProps {
 export function NavBar({ items, className }: NavBarProps) {
   const [activeTab, setActiveTab] = useState(items[0].name)
   const [isMobile, setIsMobile] = useState(false)
+  const { logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      toast.success("Logged out successfully!")
+      navigate("/")
+    } catch (error) {
+      toast.error("Failed to logout")
+    }
+  }
 
   useEffect(() => {
     const handleResize = () => {
@@ -77,6 +91,21 @@ export function NavBar({ items, className }: NavBarProps) {
             </Link>
           )
         })}
+        
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className={cn(
+            "relative cursor-pointer text-sm font-semibold px-4 py-2 rounded-full transition-colors",
+            "text-foreground/80 hover:text-red-500 hover:bg-red-500/10"
+          )}
+          title="Logout"
+        >
+          <span className="hidden md:inline">Logout</span>
+          <span className="md:hidden">
+            <LogOut size={18} strokeWidth={2.5} />
+          </span>
+        </button>
       </div>
     </div>
   )

@@ -3,6 +3,7 @@ import { ThemeProvider } from './components/theme-provider'
 import { AuthProvider } from '@/lib/hooks/useAuth'
 import { Toaster } from 'sonner'
 import Layout from './components/Layout'
+import AuthGuard from './components/AuthGuard'
 
 // Pages
 import LandingPage from './pages/LandingPage'
@@ -20,14 +21,40 @@ function App() {
         <Routes>
           {/* Public pages without layout */}
           <Route path="/" element={<LandingPage />} />
-          <Route path="/sign-in" element={<SignInPage />} />
-          <Route path="/create-account" element={<CreateAccountPage />} />
-          <Route path="/verify-otp" element={<OTPVerifyPage />} />
           
-          {/* App pages with layout and navigation */}
-          <Route path="/home" element={<Layout><HomePage /></Layout>} />
-          <Route path="/history" element={<Layout><HistoryPage /></Layout>} />
-          <Route path="/settings" element={<Layout><SettingsPage /></Layout>} />
+          {/* Auth pages - redirect if already authenticated */}
+          <Route path="/sign-in" element={
+            <AuthGuard requireAuth={false} redirectTo="/home">
+              <SignInPage />
+            </AuthGuard>
+          } />
+          <Route path="/create-account" element={
+            <AuthGuard requireAuth={false} redirectTo="/home">
+              <CreateAccountPage />
+            </AuthGuard>
+          } />
+          <Route path="/verify-otp" element={
+            <AuthGuard requireAuth={false} redirectTo="/home">
+              <OTPVerifyPage />
+            </AuthGuard>
+          } />
+          
+          {/* Protected app pages - require authentication */}
+          <Route path="/home" element={
+            <AuthGuard requireAuth={true}>
+              <Layout><HomePage /></Layout>
+            </AuthGuard>
+          } />
+          <Route path="/history" element={
+            <AuthGuard requireAuth={true}>
+              <Layout><HistoryPage /></Layout>
+            </AuthGuard>
+          } />
+          <Route path="/settings" element={
+            <AuthGuard requireAuth={true}>
+              <Layout><SettingsPage /></Layout>
+            </AuthGuard>
+          } />
         </Routes>
         <Toaster position="top-right" richColors />
       </AuthProvider>

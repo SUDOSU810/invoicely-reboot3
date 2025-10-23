@@ -46,14 +46,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    await signIn({ username: email, password });
-    const currentUser = await getCurrentUser();
-    const attributes = await fetchUserAttributes();
-    setUser({ 
-      username: currentUser.username, 
-      email: attributes.email,
-      name: attributes.name 
-    });
+    try {
+      await signIn({ username: email, password });
+      const currentUser = await getCurrentUser();
+      const attributes = await fetchUserAttributes();
+      setUser({ 
+        username: currentUser.username, 
+        email: attributes.email,
+        name: attributes.name 
+      });
+    } catch (error: any) {
+      // Handle specific AWS Cognito errors
+      if (error.name === 'UserNotConfirmedException') {
+        throw new Error('Please verify your email first');
+      } else if (error.name === 'NotAuthorizedException') {
+        throw new Error('Invalid email or password');
+      } else if (error.name === 'UserNotFoundException') {
+        throw new Error('No account found with this email');
+      } else if (error.name === 'TooManyRequestsException') {
+        throw new Error('Too many login attempts. Please try again later');
+      } else {
+        throw new Error(error.message || 'Login failed');
+      }
+    }
   };
 
   const signup = async (name: string, email: string, password: string) => {
