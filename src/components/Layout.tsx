@@ -1,8 +1,7 @@
 import { NavBar } from "@/components/ui/tubelight-navbar"
 import Aurora from "@/components/ui/aurora"
 import InvoicelyLogo from "@/components/ui/invoicely-logo"
-import AWSStatusIndicator from "@/components/ui/aws-status-indicator"
-import { AWSSessionStatus } from "./AWSSessionStatus"
+
 import { Home, History, Settings } from "lucide-react"
 
 const navItems = [
@@ -37,11 +36,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           />
         </div>
 
-        {/* AWS Status Indicators in top right corner */}
-        <div className="fixed top-6 right-6 z-40 flex items-center gap-2">
-          <AWSSessionStatus />
-          <AWSStatusIndicator />
-        </div>
+
         
         <NavBar items={navItems} />
         <main>

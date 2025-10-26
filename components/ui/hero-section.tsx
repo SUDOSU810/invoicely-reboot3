@@ -21,7 +21,7 @@ export default function HeroSection() {
             >
               <div className="flex items-center space-x-2 px-4 py-2">
                 <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>
-                <span className="text-sm font-medium text-white">New: AI-Powered Templates</span>
+                <span className="text-sm font-medium text-white">Try Our Invoice Services Now!!</span>
                 <ArrowRight className="h-3 w-3 text-blue-400" />
               </div>
             </GlassSurface>
@@ -40,8 +40,7 @@ export default function HeroSection() {
 
           {/* Subtitle */}
           <p className="text-xl md:text-2xl text-blue-100/80 max-w-3xl mx-auto mb-12 text-balance leading-relaxed">
-            Create, send, and track professional invoices in minutes. Join over 50,000 businesses who trust Invoicely
-            for their billing needs.
+            Create, send, and track professional invoices in minutes.
           </p>
 
           {/* CTA Buttons */}
@@ -60,7 +59,7 @@ export default function HeroSection() {
           </div>
 
           {/* Trust Indicators */}
-          <p className="text-sm text-blue-200/60 mb-8">Trusted by 50,000+ businesses worldwide</p>
+          <p className="text-sm text-blue-200/60 mb-8"></p>
         </div>
       </div>
     </section>

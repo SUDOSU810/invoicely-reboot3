@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
+import { Slider } from "@/components/ui/slider"
 import {
   Select,
   SelectContent,
@@ -889,25 +890,43 @@ export default function HomePage() {
               </div>
               <div className="col-span-4 md:col-span-2">
                 <Label htmlFor={`quantity-${item.id}`}>Qty</Label>
-                <Input
-                  id={`quantity-${item.id}`}
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={item.quantity}
-                  onChange={(e) => updateLineItem(item.id, "quantity", Number(e.target.value))}
-                />
+                <div className="space-y-2">
+                  <Input
+                    id={`quantity-${item.id}`}
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={item.quantity}
+                    onChange={(e) => updateLineItem(item.id, "quantity", Number(e.target.value))}
+                  />
+                  <Slider
+                    value={item.quantity}
+                    onValueChange={(value) => updateLineItem(item.id, "quantity", value)}
+                    min={1}
+                    max={50}
+                    step={1}
+                  />
+                </div>
               </div>
               <div className="col-span-4 md:col-span-2">
                 <Label htmlFor={`unitPrice-${item.id}`}>Unit Price</Label>
-                <Input
-                  id={`unitPrice-${item.id}`}
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={item.unitPrice}
-                  onChange={(e) => updateLineItem(item.id, "unitPrice", Number(e.target.value))}
-                />
+                <div className="space-y-2">
+                  <Input
+                    id={`unitPrice-${item.id}`}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={item.unitPrice}
+                    onChange={(e) => updateLineItem(item.id, "unitPrice", Number(e.target.value))}
+                  />
+                  <Slider
+                    value={item.unitPrice}
+                    onValueChange={(value) => updateLineItem(item.id, "unitPrice", value)}
+                    min={0}
+                    max={10000}
+                    step={1}
+                  />
+                </div>
               </div>
               <div className="col-span-3 md:col-span-2">
                 <Label>Total</Label>
@@ -990,46 +1009,7 @@ export default function HomePage() {
               <Upload className="h-4 w-4 mr-2" />
               Save Draft
             </Button>
-            <Button 
-              onClick={async () => {
-                try {
-                  const { invoiceService } = await import("../lib/invoice-service");
-                  const status = await invoiceService.getServiceStatus();
-                  
-                  const logoInfo = invoiceData.businessInfo.logoUrl ? 
-                    `Logo URL: ${invoiceData.businessInfo.logoUrl}` : 
-                    'No logo';
-                  
-                  const message = `
-🔍 Service Status:
-• DynamoDB: ${status.dynamodb ? '✅ Connected' : '❌ Unavailable'}
-• LocalStorage: ${status.localStorage ? '✅ Available' : '❌ Error'}
 
-📊 Data Count:
-• DynamoDB: ${status.dynamoCount} invoices
-• LocalStorage: ${status.localCount} invoices
-
-📷 Current Invoice:
-• ${logoInfo}
-• Business: "${invoiceData.businessInfo.name || 'Not set'}"
-• Logo Type: ${invoiceData.businessInfo.logoUrl ? 'URL' : 'None'}
-
-${status.dynamodb ? '🎯 Using DynamoDB (Primary)' : '⚠️ Using LocalStorage (Fallback)'}
-                  `;
-                  
-                  alert(message);
-                  console.log("Service Status:", status);
-                  console.log("Current invoice data:", invoiceData);
-                } catch (error) {
-                  alert("Service Test Failed: " + error.message);
-                  console.error("Test error:", error);
-                }
-              }}
-              variant="outline" 
-              className="w-full"
-            >
-              📊 Debug Info
-            </Button>
             <Button onClick={handleGeneratePDF} className="w-full">
               <Printer className="h-4 w-4 mr-2" />
               Export PDF

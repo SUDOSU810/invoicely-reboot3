@@ -113,7 +113,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-4">
               <li className="text-blue-100 flex items-center">
                 <MapPin className="w-5 h-5 mr-2 text-blue-200" />
-                San Francisco, CA
+                VESIT, Chembur
               </li>
               <li>
                 <a
@@ -121,7 +121,7 @@ const Footer: React.FC = () => {
                   className="text-blue-100 hover:text-white transition-colors duration-300 flex items-center group"
                 >
                   <Mail className="w-5 h-5 mr-2 text-blue-200" />
-                  hello@invoicely.com
+                  invoicelysupport@gmail.com
                 </a>
               </li>
               <li>
@@ -130,7 +130,7 @@ const Footer: React.FC = () => {
                   className="text-blue-100 hover:text-white transition-colors duration-300 flex items-center group"
                 >
                   <Phone className="w-5 h-5 mr-2 text-blue-200" />
-                  +1 (555) 123-4567
+                  +91 91456 78901
                 </a>
               </li>
             </ul>
