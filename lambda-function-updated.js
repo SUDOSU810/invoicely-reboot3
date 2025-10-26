@@ -33,6 +33,27 @@ export const handler = async (event) => {
     };
   }
 
+  // ==============================
+  // === DIRECT LOGO EMBEDDING ===
+  // ==============================
+  let logoBuffer = null;
+  if (
+    invoiceData.businessInfo?.logo &&
+    invoiceData.businessInfo.logo.startsWith("data:image")
+  ) {
+    try {
+      // Convert base64 directly to buffer for PDF embedding
+      const base64Data = invoiceData.businessInfo.logo.replace(/^data:image\/\w+;base64,/, "");
+      logoBuffer = Buffer.from(base64Data, "base64");
+      console.log("✅ Logo converted from base64, size:", logoBuffer.length);
+    } catch (err) {
+      console.error("❌ Logo conversion failed:", err.message);
+      logoBuffer = null;
+    }
+  } else {
+    console.log("ℹ️ No logo data provided or not base64 format");
+  }
+
   // --- Auto Calculate Totals ---
   let subtotal = 0;
   invoiceData.lineItems = invoiceData.lineItems || [];
@@ -52,61 +73,35 @@ export const handler = async (event) => {
   invoiceData.taxAmount = taxAmount;
   invoiceData.total = total;
 
-  // === PDF Generation ===
+  // === PDF GENERATION ===
   const doc = new PDFDocument({ size: "A4", margin: 36 });
   const buffers = [];
   doc.on("data", buffers.push.bind(buffers));
 
-  // --- Add Logo from URL ---
-  let logoAdded = false;
-  const logoUrl = invoiceData.logoUrl || invoiceData.businessInfo?.logoUrl;
-
-  if (logoUrl && logoUrl.startsWith('http')) {
+  // --- Direct Logo Embedding ---
+  if (logoBuffer && logoBuffer.length > 0) {
     try {
-      console.log('🖼️ Fetching logo from URL:', logoUrl);
-      
-      const https = await import('https');
-      const logoBuffer = await new Promise((resolve, reject) => {
-        https.get(logoUrl, (res) => {
-          const data = [];
-          res.on("data", (chunk) => data.push(chunk));
-          res.on("end", () => resolve(Buffer.concat(data)));
-          res.on("error", reject);
-        }).on("error", reject);
-      });
-
-      // Add logo to PDF
-      doc.image(logoBuffer, 42, 20, {
-        width: 80,
-        height: 60,
-        fit: [80, 60],
-        align: 'left'
-      });
-      
-      logoAdded = true;
-      console.log('✅ Logo added to PDF successfully from URL');
-      
-    } catch (error) {
-      console.warn('⚠️ Logo fetch failed:', error.message);
-      // Continue without logo
+      console.log("🖼️ Embedding logo directly in PDF, size:", logoBuffer.length);
+      doc.image(logoBuffer, 50, 10, { width: 80, height: 60, fit: [80, 60] });
+      console.log("✅ Logo added to PDF successfully");
+    } catch (err) {
+      console.error("❌ Error adding logo to PDF:", err.message);
     }
   } else {
-    console.log('ℹ️ No valid logo URL provided');
+    console.log("ℹ️ No logo buffer available");
   }
 
-  // --- Header Bar (adjusted for logo) ---
-  const headerStartX = logoAdded ? 130 : 42;
-  doc.rect(0, 0, doc.page.width, 80)
+  // --- Header Bar and Invoice Content ---
+  doc.rect(0, 75, doc.page.width, 80)
     .fill("#0077b6")
     .fillColor("white")
     .font("Helvetica-Bold")
     .fontSize(34)
-    .text("INVOICE", headerStartX, 30)
+    .text("INVOICE", 130, 105)
     .fillColor("black");
 
-  // --- Business Info ---
   doc.font("Helvetica").fontSize(12).fillColor("#333");
-  doc.text("From:", 40, 100);
+  doc.text("From:", 40, 175);
   doc.font("Helvetica-Bold").text(invoiceData.businessInfo?.name || "");
   doc.font("Helvetica").fillColor("#333");
   doc.text(invoiceData.businessInfo?.address || "");
@@ -114,15 +109,14 @@ export const handler = async (event) => {
   doc.text(invoiceData.businessInfo?.phone || "");
   if (invoiceData.businessInfo?.website) doc.text(invoiceData.businessInfo.website);
 
-  // --- Client Info ---
-  doc.font("Helvetica").fontSize(12).fillColor("#333").text("Bill To:", 340, 100);
+  doc.font("Helvetica").fontSize(12).fillColor("#333").text("Bill To:", 340, 175);
   doc.font("Helvetica-Bold").text(invoiceData.clientInfo?.name || "", 340);
   doc.font("Helvetica").fillColor("#333");
   doc.text(invoiceData.clientInfo?.address || "", 340);
   doc.text(invoiceData.clientInfo?.email || "", 340);
   doc.text(invoiceData.clientInfo?.phone || "", 340);
 
-  let y = 200;
+  let y = 275;
   doc.font("Helvetica-Bold").fontSize(11).fillColor("#0077b6")
     .text("Invoice #:", 40, y, { continued: true })
     .font("Helvetica").fillColor("black")
@@ -277,24 +271,19 @@ export const handler = async (event) => {
     paymentTerms: invoiceData.paymentTerms,
     currency: invoiceData.currency,
     pdfUrl,
-    logoIncluded: logoAdded, // Track if logo was successfully added
+    logoIncluded: !!logoBuffer,
   };
 
   try {
     await dynamodb.put({ TableName: tableName, Item: item }).promise();
 
-    const successMessage = logoAdded
-      ? "✅ Invoice created with logo, PDF generated, and uploaded successfully!"
-      : "✅ Invoice created, PDF generated, and uploaded successfully!";
-
     return {
       statusCode: 201,
       headers: corsHeaders,
       body: JSON.stringify({
-        message: successMessage,
+        message: logoBuffer ? "✅ Invoice with logo & PDF uploaded successfully!" : "✅ Invoice & PDF uploaded successfully!",
         pdfUrl,
         invoice: item,
-        logoProcessed: logoAdded,
       }),
     };
   } catch (err) {

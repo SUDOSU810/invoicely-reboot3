@@ -248,24 +248,21 @@ export default function HomePage() {
   }
 
   // Logo upload handlers
-  // Simple logo URL handling
-  const handleLogoUrlChange = (url: string) => {
-    if (url && url.startsWith('http')) {
-      setLogoUrl(url)
-      updateBusinessInfo("logoUrl", url)
-      console.log("🖼️ Logo URL set:", url)
-    } else if (!url) {
-      setLogoUrl(null)
-      updateBusinessInfo("logoUrl", "")
-    } else {
-      alert('Please enter a valid URL starting with http:// or https://')
-    }
-  }
+  const handleLogoUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64String = e.target?.result as string;
+      setLogoUrl(base64String);
+      updateBusinessInfo("logo", base64String);
+      console.log("🖼️ Logo uploaded as base64");
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleLogoRemove = () => {
-    setLogoUrl(null)
-    updateBusinessInfo("logoUrl", "")
-  }
+    setLogoUrl(null);
+    updateBusinessInfo("logo", "");
+  };
 
   // Calculate totals
   useEffect(() => {
@@ -294,22 +291,17 @@ export default function HomePage() {
   try {
     const apiEndpoint = "https://oeegu8gbod.execute-api.us-east-1.amazonaws.com/default";
 
-    // Prepare data for Lambda with logo URL
+    // Prepare data for Lambda
     const lambdaData = {
       ...invoiceData,
-      // Send logo URL to Lambda
-      logoUrl: invoiceData.businessInfo.logoUrl,
-      // Also ensure business info is properly structured
       businessInfo: {
         ...invoiceData.businessInfo,
-        name: invoiceData.businessInfo.name || 'Your Business Name',
-        logoUrl: invoiceData.businessInfo.logoUrl
+        name: invoiceData.businessInfo.name || 'Your Business Name'
       }
     };
 
     console.log("🚀 Sending to Lambda:", {
-      hasLogoUrl: !!lambdaData.logoUrl,
-      logoUrl: lambdaData.logoUrl || 'None',
+      hasLogo: !!lambdaData.businessInfo.logo,
       businessName: lambdaData.businessInfo.name
     });
 
@@ -357,7 +349,7 @@ export default function HomePage() {
       document.body.removeChild(link);
       
       // Show success message
-      if (invoiceData.businessInfo.logoUrl) {
+      if (invoiceData.businessInfo.logo) {
         alert("✅ PDF generated with logo and downloaded!");
       } else {
         alert("✅ PDF generated and downloaded!");
@@ -612,15 +604,15 @@ export default function HomePage() {
         
         {/* Logo Upload */}
         <div className="mb-4">
-          <Label>Business Logo {invoiceData.businessInfo.logoUrl && '✅'}</Label>
+          <Label>Business Logo {invoiceData.businessInfo.logo && '✅'}</Label>
           <div className="space-y-2">
-            <Label htmlFor="logoUrl">Logo URL</Label>
             <Input
-              id="logoUrl"
-              type="url"
-              placeholder="https://example.com/logo.png"
-              value={invoiceData.businessInfo.logoUrl || ""}
-              onChange={(e) => handleLogoUrlChange(e.target.value)}
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleLogoUpload(file);
+              }}
             />
             {logoUrl && (
               <div className="relative h-32 w-32">
@@ -628,10 +620,6 @@ export default function HomePage() {
                   src={logoUrl}
                   alt="Business Logo"
                   className="h-full w-full object-contain rounded-lg border"
-                  onError={() => {
-                    alert('Failed to load logo from URL. Please check the URL.')
-                    handleLogoRemove()
-                  }}
                 />
                 <Button
                   size="sm"
