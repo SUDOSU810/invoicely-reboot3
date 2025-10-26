@@ -6,10 +6,28 @@
   height: 100%;
   pointer-events: none;
   z-index: 1;
+  display: block;
 }
 
+/* Ensure canvas fills the container */
 .aurora-container canvas {
   width: 100% !important;
   height: 100% !important;
   display: block;
+}
+
+/* Fallback animation for non-WebGL browsers */
+.aurora-container:not(canvas) {
+  animation: aurora-pulse 8s ease-in-out infinite;
+}
+
+@keyframes aurora-pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
 }

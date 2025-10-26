@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from "react-router-dom"
 import { OTPVerification } from "@/components/ui/otp-verify"
 import { useAuth } from "@/lib/hooks/useAuth"
 import { toast } from "sonner"
+import Aurora from "@/components/ui/aurora"
 
 export default function OTPVerifyPage() {
   const navigate = useNavigate()
@@ -33,10 +34,18 @@ export default function OTPVerifyPage() {
   }
 
   return (
-    <OTPVerification 
-      email={email}
-      onVerify={handleVerify}
-      onResend={handleResend}
-    />
+    <>
+      <div className="fixed top-0 left-0 w-full h-full z-0">
+        <Aurora colorStops={["#1e3a8a", "#3b82f6", "#60a5fa"]} blend={0.5} amplitude={1.0} speed={0.5} />
+      </div>
+      
+      <div className="relative z-10">
+        <OTPVerification 
+          email={email}
+          onVerify={handleVerify}
+          onResend={handleResend}
+        />
+      </div>
+    </>
   )
 }

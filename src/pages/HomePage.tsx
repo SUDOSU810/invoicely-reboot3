@@ -152,7 +152,7 @@ export default function HomePage() {
 
   const [isPreviewMode, setIsPreviewMode] = useState(false)
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
-  const logoInputRef = useRef<HTMLInputElement>(null)
+
 
   // Load settings and apply to invoice
   useEffect(() => {
@@ -247,89 +247,23 @@ export default function HomePage() {
   }
 
   // Logo upload handlers
-  const handleLogoClick = () => {
-    logoInputRef.current?.click()
-  }
-
-  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      // Check file size (warn if > 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        alert('⚠️ Large image detected. Compressing for PDF compatibility...')
-      }
-      // Create blob URL for preview
-      const url = URL.createObjectURL(file)
+  // Simple logo URL handling
+  const handleLogoUrlChange = (url: string) => {
+    if (url && url.startsWith('http')) {
       setLogoUrl(url)
-      
-      // Compress and convert to base64 for PDF generation
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      const img = new Image()
-      
-      img.onload = () => {
-        try {
-          // Set max dimensions (reduce size for Lambda)
-          const maxWidth = 200
-          const maxHeight = 200
-          
-          let { width, height } = img
-          
-          // Calculate new dimensions
-          if (width > height) {
-            if (width > maxWidth) {
-              height = (height * maxWidth) / width
-              width = maxWidth
-            }
-          } else {
-            if (height > maxHeight) {
-              width = (width * maxHeight) / height
-              height = maxHeight
-            }
-          }
-          
-          // Set canvas size and draw compressed image
-          canvas.width = width
-          canvas.height = height
-          ctx?.drawImage(img, 0, 0, width, height)
-          
-          // Convert to base64 with compression
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7) // 70% quality
-          console.log('✅ Logo compressed successfully')
-          console.log('📊 Original size:', (file.size / 1024).toFixed(1), 'KB')
-          console.log('📊 Compressed base64 length:', (compressedBase64.length / 1024).toFixed(1), 'KB')
-          
-          // Check if still too large (Lambda limit is ~6MB total request)
-          if (compressedBase64.length > 500000) { // 500KB limit for image
-            alert('⚠️ Image still too large after compression. Please use a smaller image.')
-            return
-          }
-          
-          updateBusinessInfo("logo", compressedBase64)
-          console.log("🖼️ Logo set in invoice data:", compressedBase64.substring(0, 100) + '...')
-        } catch (error) {
-          console.error('Error processing image:', error)
-          alert('❌ Error processing image. Please try a different image.')
-        }
-      }
-      
-      img.onerror = () => {
-        alert('❌ Error loading image. Please try a different file.')
-      }
-      
-      img.src = url
+      updateBusinessInfo("logoUrl", url)
+      console.log("🖼️ Logo URL set:", url)
+    } else if (!url) {
+      setLogoUrl(null)
+      updateBusinessInfo("logoUrl", "")
+    } else {
+      alert('Please enter a valid URL starting with http:// or https://')
     }
   }
 
   const handleLogoRemove = () => {
-    if (logoUrl) {
-      URL.revokeObjectURL(logoUrl)
-    }
     setLogoUrl(null)
-    updateBusinessInfo("logo", "")
-    if (logoInputRef.current) {
-      logoInputRef.current.value = ""
-    }
+    updateBusinessInfo("logoUrl", "")
   }
 
   // Calculate totals
@@ -359,27 +293,22 @@ export default function HomePage() {
   try {
     const apiEndpoint = "https://oeegu8gbod.execute-api.us-east-1.amazonaws.com/default";
 
-    // Prepare data for Lambda with logo in different formats
+    // Prepare data for Lambda with logo URL
     const lambdaData = {
       ...invoiceData,
-      // Try different logo field names that Lambda might expect
-      logo: invoiceData.businessInfo.logo,
-      companyLogo: invoiceData.businessInfo.logo,
-      businessLogo: invoiceData.businessInfo.logo,
-      // Add logo placeholder text if logo exists but Lambda doesn't support it
-      logoPlaceholder: invoiceData.businessInfo.logo ? "⚠️ LOGO UPLOADED - PDF generation needs Lambda update to display logo" : "",
+      // Send logo URL to Lambda
+      logoUrl: invoiceData.businessInfo.logoUrl,
       // Also ensure business info is properly structured
       businessInfo: {
         ...invoiceData.businessInfo,
         name: invoiceData.businessInfo.name || 'Your Business Name',
-        // Add a text-based logo fallback
-        logoText: invoiceData.businessInfo.logo ? `[${invoiceData.businessInfo.name || 'COMPANY'} LOGO]` : ""
+        logoUrl: invoiceData.businessInfo.logoUrl
       }
     };
 
     console.log("🚀 Sending to Lambda:", {
-      hasLogo: !!lambdaData.logo,
-      logoSize: lambdaData.logo ? `${(lambdaData.logo.length / 1024).toFixed(1)}KB` : '0KB',
+      hasLogoUrl: !!lambdaData.logoUrl,
+      logoUrl: lambdaData.logoUrl || 'None',
       businessName: lambdaData.businessInfo.name
     });
 
@@ -397,11 +326,7 @@ export default function HomePage() {
         console.log("💾 Saving invoice to database...");
         console.log("📄 Invoice data being sent:");
         console.log("Business Name:", invoiceData.businessInfo.name);
-        console.log("Logo present:", !!invoiceData.businessInfo.logo);
-        console.log("Logo type:", invoiceData.businessInfo.logo ? 
-          (invoiceData.businessInfo.logo.startsWith('data:') ? 'base64' : 'other') : 'none');
-        console.log("Logo size:", invoiceData.businessInfo.logo ? 
-          `${(invoiceData.businessInfo.logo.length / 1024).toFixed(1)}KB` : '0KB');
+        console.log("Logo URL:", invoiceData.businessInfo.logoUrl || 'None');
         
         const { invoiceService } = await import("../lib/invoice-service");
         
@@ -430,11 +355,11 @@ export default function HomePage() {
       link.click();
       document.body.removeChild(link);
       
-      // Show appropriate message based on logo presence
-      if (invoiceData.businessInfo.logo) {
-        alert("✅ PDF generated and downloaded!\n\n⚠️ Note: Logo is uploaded and saved but won't appear in PDF until AWS Lambda function is updated to process logo data.");
+      // Show success message
+      if (invoiceData.businessInfo.logoUrl) {
+        alert("✅ PDF generated with logo and downloaded!");
       } else {
-        alert("✅ PDF generated, saved to database, and downloaded!");
+        alert("✅ PDF generated and downloaded!");
       }
     } else {
       alert("Error generating PDF: " + (result.message || "Unknown error"));
@@ -686,39 +611,38 @@ export default function HomePage() {
         
         {/* Logo Upload */}
         <div className="mb-4">
-          <Label>Business Logo {invoiceData.businessInfo.logo && '✅'}</Label>
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            ref={logoInputRef}
-            onChange={handleLogoChange}
-          />
-          {!logoUrl ? (
-            <div
-              onClick={handleLogoClick}
-              className="flex h-32 w-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50 transition-colors hover:bg-muted"
-            >
-              <ImagePlus className="h-8 w-8 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Upload Logo</span>
-            </div>
-          ) : (
-            <div className="relative h-32 w-32">
-              <img
-                src={logoUrl}
-                alt="Business Logo"
-                className="h-full w-full object-contain rounded-lg border"
-              />
-              <Button
-                size="sm"
-                variant="destructive"
-                className="absolute -top-2 -right-2 h-6 w-6 p-0"
-                onClick={handleLogoRemove}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
-          )}
+          <Label>Business Logo {invoiceData.businessInfo.logoUrl && '✅'}</Label>
+          <div className="space-y-2">
+            <Label htmlFor="logoUrl">Logo URL</Label>
+            <Input
+              id="logoUrl"
+              type="url"
+              placeholder="https://example.com/logo.png"
+              value={invoiceData.businessInfo.logoUrl || ""}
+              onChange={(e) => handleLogoUrlChange(e.target.value)}
+            />
+            {logoUrl && (
+              <div className="relative h-32 w-32">
+                <img
+                  src={logoUrl}
+                  alt="Business Logo"
+                  className="h-full w-full object-contain rounded-lg border"
+                  onError={() => {
+                    alert('Failed to load logo from URL. Please check the URL.')
+                    handleLogoRemove()
+                  }}
+                />
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="absolute -top-2 -right-2 h-6 w-6 p-0"
+                  onClick={handleLogoRemove}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1072,8 +996,8 @@ export default function HomePage() {
                   const { invoiceService } = await import("../lib/invoice-service");
                   const status = await invoiceService.getServiceStatus();
                   
-                  const logoInfo = invoiceData.businessInfo.logo ? 
-                    `Logo: ${(invoiceData.businessInfo.logo.length / 1024).toFixed(1)}KB` : 
+                  const logoInfo = invoiceData.businessInfo.logoUrl ? 
+                    `Logo URL: ${invoiceData.businessInfo.logoUrl}` : 
                     'No logo';
                   
                   const message = `
@@ -1088,7 +1012,7 @@ export default function HomePage() {
 📷 Current Invoice:
 • ${logoInfo}
 • Business: "${invoiceData.businessInfo.name || 'Not set'}"
-• Logo Type: ${invoiceData.businessInfo.logo ? (invoiceData.businessInfo.logo.startsWith('data:image/') ? 'Valid Base64' : 'Invalid Format') : 'None'}
+• Logo Type: ${invoiceData.businessInfo.logoUrl ? 'URL' : 'None'}
 
 ${status.dynamodb ? '🎯 Using DynamoDB (Primary)' : '⚠️ Using LocalStorage (Fallback)'}
                   `;

@@ -57,49 +57,41 @@ export const handler = async (event) => {
   const buffers = [];
   doc.on("data", buffers.push.bind(buffers));
 
-  // --- Add Logo (FIXED) ---
+  // --- Add Logo from URL ---
   let logoAdded = false;
-  const logoData = invoiceData.businessInfo?.logo || invoiceData.logo || invoiceData.companyLogo || invoiceData.businessLogo;
+  const logoUrl = invoiceData.logoUrl || invoiceData.businessInfo?.logoUrl;
 
-  if (logoData) {
+  if (logoUrl && logoUrl.startsWith('http')) {
     try {
-      let logoBuffer;
+      console.log('🖼️ Fetching logo from URL:', logoUrl);
+      
+      const https = await import('https');
+      const logoBuffer = await new Promise((resolve, reject) => {
+        https.get(logoUrl, (res) => {
+          const data = [];
+          res.on("data", (chunk) => data.push(chunk));
+          res.on("end", () => resolve(Buffer.concat(data)));
+          res.on("error", reject);
+        }).on("error", reject);
+      });
 
-      // Check if it's base64 data (starts with data:image/)
-      if (logoData.startsWith('data:image/')) {
-        // Extract base64 data (remove data:image/jpeg;base64, prefix)
-        const base64Data = logoData.split(',')[1];
-        logoBuffer = Buffer.from(base64Data, 'base64');
-        console.log('✅ Logo processed from base64 data');
-      } else if (logoData.startsWith('http')) {
-        // Handle URL-based logos (your original code)
-        const https = await import('https');
-        logoBuffer = await new Promise((resolve, reject) => {
-          https.get(logoData, (res) => {
-            const data = [];
-            res.on("data", (chunk) => data.push(chunk));
-            res.on("end", () => resolve(Buffer.concat(data)));
-            res.on("error", reject);
-          });
-        });
-        console.log('✅ Logo processed from URL');
-      }
-
-      if (logoBuffer) {
-        // Add logo to PDF with proper positioning
-        doc.image(logoBuffer, 42, 20, {
-          width: 80,
-          height: 60,
-          fit: [80, 60],
-          align: 'left'
-        });
-        logoAdded = true;
-        console.log('✅ Logo added to PDF successfully');
-      }
+      // Add logo to PDF
+      doc.image(logoBuffer, 42, 20, {
+        width: 80,
+        height: 60,
+        fit: [80, 60],
+        align: 'left'
+      });
+      
+      logoAdded = true;
+      console.log('✅ Logo added to PDF successfully from URL');
+      
     } catch (error) {
-      console.warn('⚠️ Logo processing failed:', error.message);
+      console.warn('⚠️ Logo fetch failed:', error.message);
       // Continue without logo
     }
+  } else {
+    console.log('ℹ️ No valid logo URL provided');
   }
 
   // --- Header Bar (adjusted for logo) ---

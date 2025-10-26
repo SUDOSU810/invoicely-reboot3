@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/lib/hooks/useAuth"
 import { toast } from "sonner"
 import { useState } from "react"
+import Aurora from "@/components/ui/aurora"
 
 const sampleTestimonials: Testimonial[] = []
 
@@ -53,13 +54,19 @@ export default function CreateAccountPage() {
   }
 
   return (
-    <div className="bg-background text-foreground min-h-screen">
-      <CreateAccountComponent
-        testimonials={sampleTestimonials}
-        onCreateAccount={handleCreateAccount}
-        onGoogleSignUp={handleGoogleSignUp}
-        onSignIn={handleSignIn}
-      />
-    </div>
+    <>
+      <div className="fixed top-0 left-0 w-full h-full z-0">
+        <Aurora colorStops={["#1e3a8a", "#3b82f6", "#60a5fa"]} blend={0.5} amplitude={1.0} speed={0.5} />
+      </div>
+      
+      <div className="bg-background text-foreground min-h-screen relative z-10">
+        <CreateAccountComponent
+          testimonials={sampleTestimonials}
+          onCreateAccount={handleCreateAccount}
+          onGoogleSignUp={handleGoogleSignUp}
+          onSignIn={handleSignIn}
+        />
+      </div>
+    </>
   )
 }

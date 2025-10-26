@@ -128,6 +128,7 @@ export default function HistoryPage() {
           dueDate: record.dueDate,
           items: record.items,
           description: record.description,
+          pdfUrl: record.pdfUrl, // CRITICAL: Include pdfUrl in transformation
         }))
         
         console.log("Transformed invoices:", transformedInvoices)
@@ -180,21 +181,14 @@ export default function HistoryPage() {
         cell: ({ row }) => (
           <button
             className="font-medium text-foreground hover:text-primary underline-offset-4 hover:underline cursor-pointer"
-            onClick={async () => {
-              try {
-                const { invoiceService } = await import("../lib/invoice-service")
-                
-                // Try to get a valid PDF URL (will refresh if expired)
-                const pdfUrl = await invoiceService.getPdfUrl(row.original.id)
-                
-                if (pdfUrl) {
-                  window.open(pdfUrl, '_blank')
-                } else {
-                  alert('⚠️ PDF not available or expired. Please regenerate the PDF from the invoice details.')
-                }
-              } catch (error) {
-                console.error('Error opening PDF:', error)
-                alert('Error opening PDF')
+            onClick={() => {
+              // Direct access to PDF URL from invoice data
+              const pdfUrl = row.original.pdfUrl
+              
+              if (pdfUrl) {
+                window.open(pdfUrl, '_blank')
+              } else {
+                alert('PDF not available')
               }
             }}
           >
@@ -284,21 +278,14 @@ export default function HistoryPage() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem
-                onClick={async () => {
-                  try {
-                    const { invoiceService } = await import("../lib/invoice-service")
-                    
-                    // Try to get a valid PDF URL (will refresh if expired)
-                    const pdfUrl = await invoiceService.getPdfUrl(row.original.id)
-                    
-                    if (pdfUrl) {
-                      window.open(pdfUrl, '_blank')
-                    } else {
-                      alert('⚠️ PDF not available or expired. Please regenerate the PDF from the invoice details.')
-                    }
-                  } catch (error) {
-                    console.error('Error opening PDF:', error)
-                    alert('❌ Error opening PDF. The link may have expired.')
+                onClick={() => {
+                  // Direct access to PDF URL from invoice data
+                  const pdfUrl = row.original.pdfUrl
+                  
+                  if (pdfUrl) {
+                    window.open(pdfUrl, '_blank')
+                  } else {
+                    alert('PDF not available')
                   }
                 }}
               >
@@ -306,26 +293,19 @@ export default function HistoryPage() {
                 View PDF
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={async () => {
-                  try {
-                    const { invoiceService } = await import("../lib/invoice-service")
-                    
-                    // Try to get a valid PDF URL (will refresh if expired)
-                    const pdfUrl = await invoiceService.getPdfUrl(row.original.id)
-                    
-                    if (pdfUrl) {
-                      const link = document.createElement('a')
-                      link.href = pdfUrl
-                      link.download = `${row.original.invoiceNumber}.pdf`
-                      document.body.appendChild(link)
-                      link.click()
-                      document.body.removeChild(link)
-                    } else {
-                      alert('⚠️ PDF not available or expired. Please regenerate the PDF from the invoice details.')
-                    }
-                  } catch (error) {
-                    console.error('Error downloading PDF:', error)
-                    alert('❌ Error downloading PDF. The link may have expired.')
+                onClick={() => {
+                  // Direct access to PDF URL from invoice data
+                  const pdfUrl = row.original.pdfUrl
+                  
+                  if (pdfUrl) {
+                    const link = document.createElement('a')
+                    link.href = pdfUrl
+                    link.download = `${row.original.invoiceNumber}.pdf`
+                    document.body.appendChild(link)
+                    link.click()
+                    document.body.removeChild(link)
+                  } else {
+                    alert('PDF not available')
                   }
                 }}
               >

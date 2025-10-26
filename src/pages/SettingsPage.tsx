@@ -1,6 +1,7 @@
 
-import React, { useState, useEffect } from "react"
-import { Building2, Palette, FileText, Plug, Save, Mail, Phone, Globe, MapPin, DollarSign } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Building2, Palette, FileText, Plug, Save, Mail, Phone, Globe, MapPin, DollarSign, Cloud, RefreshCw, AlertTriangle } from "lucide-react"
+import { awsSessionManager } from "../lib/aws-session-manager"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import { cn } from "@/lib/utils"
+import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
 
 interface BusinessSettings {
   businessName: string
@@ -112,7 +114,7 @@ export default function SettingsPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
           <TabsTrigger value="profile" className="gap-2">
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">Business Profile</span>
@@ -127,6 +129,11 @@ export default function SettingsPage() {
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Invoice Defaults</span>
             <span className="sm:hidden">Invoice</span>
+          </TabsTrigger>
+          <TabsTrigger value="aws" className="gap-2">
+            <Plug className="h-4 w-4" />
+            <span className="hidden sm:inline">AWS Settings</span>
+            <span className="sm:hidden">AWS</span>
           </TabsTrigger>
           <TabsTrigger value="integrations" className="gap-2">
             <Plug className="h-4 w-4" />
@@ -380,6 +387,11 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
+        {/* AWS Settings Tab */}
+        <TabsContent value="aws" className="mt-6 space-y-6">
+          <AWSCredentialsCard />
+        </TabsContent>
+
         {/* Integrations Tab */}
         <TabsContent value="integrations" className="mt-6 space-y-6">
           <Card className="border-border/60 bg-background/30 backdrop-blur-xl">
@@ -444,5 +456,174 @@ export default function SettingsPage() {
         </Button>
       </div>
     </div>
+  )
+}
+
+// AWS Credentials Management Component
+function AWSCredentialsCard() {
+  const [credentialsText, setCredentialsText] = useState('')
+  const [sessionStatus, setSessionStatus] = useState({
+    isExpired: true,
+    isExpiringSoon: false,
+    timeRemaining: 0,
+    message: 'Checking AWS status...'
+  })
+
+  useEffect(() => {
+    const checkStatus = () => {
+      const status = awsSessionManager.checkSessionStatus()
+      setSessionStatus(status)
+    }
+
+    checkStatus()
+    const interval = setInterval(checkStatus, 30000) // Check every 30 seconds
+
+    return () => clearInterval(interval)
+  }, [])
+
+  const handleUpdateCredentials = () => {
+    const credentials = awsSessionManager.parseAWSAcademyCredentials(credentialsText)
+    
+    if (credentials) {
+      awsSessionManager.updateCredentials(credentials)
+      setCredentialsText('')
+      
+      // Refresh status
+      const newStatus = awsSessionManager.checkSessionStatus()
+      setSessionStatus(newStatus)
+      
+      alert('✅ AWS credentials updated successfully!\n\nDynamoDB connection restored. The page will refresh to reconnect services.')
+      
+      // Refresh the page to reconnect services
+      setTimeout(() => window.location.reload(), 1000)
+    } else {
+      alert('❌ Invalid credentials format. Please copy the complete AWS credentials from AWS Academy.')
+    }
+  }
+
+  const getStatusBadge = () => {
+    if (sessionStatus.isExpired) {
+      return <Badge variant="destructive" className="gap-1"><Cloud className="h-3 w-3" />Offline</Badge>
+    } else if (sessionStatus.isExpiringSoon) {
+      return <Badge variant="secondary" className="gap-1"><AlertTriangle className="h-3 w-3" />Expiring Soon</Badge>
+    } else {
+      return <Badge variant="default" className="gap-1"><Cloud className="h-3 w-3" />Connected</Badge>
+    }
+  }
+
+  return (
+    <Card className="border-border/60 bg-background/30 backdrop-blur-xl">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Cloud className="h-5 w-5" />
+              AWS Academy Credentials
+            </CardTitle>
+            <CardDescription>
+              Manage your AWS Academy session for DynamoDB access
+            </CardDescription>
+          </div>
+          {getStatusBadge()}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Status Information */}
+        <div className="p-4 bg-muted/50 rounded-lg">
+          <h4 className="font-semibold mb-2">Current Status</h4>
+          <p className="text-sm text-muted-foreground">{sessionStatus.message}</p>
+          
+          {sessionStatus.isExpired && (
+            <div className="mt-3 p-3 bg-red-50 dark:bg-red-950 rounded-lg">
+              <p className="text-sm text-red-700 dark:text-red-300">
+                <strong>⚠️ AWS Session Expired</strong><br />
+                Your app is currently using localStorage only. Update credentials below to restore cloud functionality.
+              </p>
+            </div>
+          )}
+          
+          {sessionStatus.isExpiringSoon && (
+            <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-950 rounded-lg">
+              <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                <strong>⏰ Session Expiring Soon</strong><br />
+                Consider refreshing your AWS Academy credentials to avoid interruption.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Instructions */}
+        <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+          <h4 className="font-semibold mb-2 text-blue-700 dark:text-blue-300">📋 How to Update Credentials:</h4>
+          <ol className="text-sm space-y-1 list-decimal list-inside text-blue-600 dark:text-blue-400">
+            <li>Go to <strong>AWS Academy Learner Lab</strong></li>
+            <li>Click <strong>"Start Lab"</strong> (if stopped)</li>
+            <li>Click <strong>"AWS Details"</strong></li>
+            <li>Copy the <strong>entire credentials block</strong></li>
+            <li>Paste it in the text area below</li>
+            <li>Click <strong>"Update Credentials"</strong></li>
+          </ol>
+        </div>
+
+        {/* Credentials Input */}
+        <div className="space-y-2">
+          <Label htmlFor="aws-credentials">AWS Academy Credentials</Label>
+          <Textarea
+            id="aws-credentials"
+            placeholder="Paste your AWS Academy credentials here:
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=...
+AWS_SESSION_TOKEN=..."
+            value={credentialsText}
+            onChange={(e) => setCredentialsText(e.target.value)}
+            rows={8}
+            className="font-mono text-sm bg-background/50"
+          />
+          <p className="text-xs text-muted-foreground">
+            Copy and paste the complete credentials block from AWS Academy
+          </p>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-between items-center">
+          <Button 
+            variant="outline" 
+            onClick={() => awsSessionManager.showRefreshInstructions()}
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Show Instructions
+          </Button>
+          
+          <Button 
+            onClick={handleUpdateCredentials}
+            disabled={!credentialsText.trim()}
+            className="gap-2"
+          >
+            <Cloud className="h-4 w-4" />
+            Update Credentials
+          </Button>
+        </div>
+
+        {/* What Works Without AWS */}
+        <div className="p-4 bg-muted/30 rounded-lg">
+          <h4 className="font-semibold mb-2">💡 What Works Without AWS:</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+            <div className="text-green-600 dark:text-green-400">
+              ✅ Invoice creation<br />
+              ✅ PDF generation<br />
+              ✅ Local history<br />
+              ✅ Settings management
+            </div>
+            <div className="text-red-600 dark:text-red-400">
+              ❌ Cloud storage<br />
+              ❌ Cross-device sync<br />
+              ❌ DynamoDB access<br />
+              ❌ Cloud backup
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

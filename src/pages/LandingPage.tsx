@@ -2,7 +2,7 @@ import Navigation from "@/components/ui/navigation"
 import HeroSection from "@/components/ui/hero-section"
 import { FeatureSteps } from "@/components/ui/feature-steps"
 import Footer from "@/components/ui/footer"
-import Aurora from "@/components/ui/aurora"
+import AuroraBackground from "@/components/ui/aurora-background"
 import Carousel from "@/components/ui/carousel"
 
 const invoiceFeatures = [
@@ -66,9 +66,8 @@ const teamMembers = [
 export default function LandingPage() {
   return (
     <>
-      <div className="fixed top-0 left-0 w-full h-full z-0">
-        <Aurora colorStops={["#1e3a8a", "#3b82f6", "#60a5fa"]} blend={0.5} amplitude={1.0} speed={0.5} />
-      </div>
+      {/* Aurora Background for entire page */}
+      <AuroraBackground />
 
       <main className="min-h-screen relative z-10">
         <Navigation />

@@ -2,6 +2,7 @@ import { NavBar } from "@/components/ui/tubelight-navbar"
 import Aurora from "@/components/ui/aurora"
 import InvoicelyLogo from "@/components/ui/invoicely-logo"
 import AWSStatusIndicator from "@/components/ui/aws-status-indicator"
+import { AWSSessionStatus } from "./AWSSessionStatus"
 import { Home, History, Settings } from "lucide-react"
 
 const navItems = [
@@ -13,9 +14,15 @@ const navItems = [
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      {/* Aurora Background - Same as Landing Page */}
+      {/* Aurora Background - OGL Aurora with Blue Shades */}
       <div className="fixed top-0 left-0 w-full h-full z-0">
-        <Aurora colorStops={["#1e3a8a", "#3b82f6", "#60a5fa"]} blend={0.5} amplitude={1.0} speed={0.5} />
+        <Aurora 
+          colorStops={["#1e3a8a", "#3b82f6", "#60a5fa"]} 
+          blend={0.5} 
+          amplitude={1.0} 
+          speed={0.5}
+          className="w-full h-full"
+        />
       </div>
 
       {/* Main Content with Navigation */}
@@ -30,8 +37,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           />
         </div>
 
-        {/* AWS Status Indicator in top right corner */}
-        <div className="fixed top-6 right-6 z-40">
+        {/* AWS Status Indicators in top right corner */}
+        <div className="fixed top-6 right-6 z-40 flex items-center gap-2">
+          <AWSSessionStatus />
           <AWSStatusIndicator />
         </div>
         
