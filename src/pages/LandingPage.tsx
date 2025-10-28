@@ -4,6 +4,7 @@ import { FeatureSteps } from "@/components/ui/feature-steps"
 import Footer from "@/components/ui/footer"
 import AuroraBackground from "@/components/ui/aurora-background"
 import Carousel from "@/components/ui/carousel"
+import ScrollBlurSection from "@/components/ui/scroll-blur-section"
 
 const invoiceFeatures = [
   {
@@ -73,18 +74,28 @@ export default function LandingPage() {
         <Navigation />
         <HeroSection />
 
-        {/* Features Section */}
-        <section id="features" className="py-24 relative">
+        {/* Features Section with Scroll Blur */}
+        <ScrollBlurSection 
+          id="features" 
+          className="py-24 relative"
+          blurIntensity={6}
+          blurDistance={300}
+        >
           <FeatureSteps
             features={invoiceFeatures}
             title="How Invoicely Works"
             autoPlayInterval={4000}
             className="max-w-7xl mx-auto"
           />
-        </section>
+        </ScrollBlurSection>
 
-        {/* About Us Section */}
-        <section id="about" className="py-24 relative">
+        {/* About Us Section with Scroll Blur */}
+        <ScrollBlurSection 
+          id="about" 
+          className="py-24 relative"
+          blurIntensity={6}
+          blurDistance={300}
+        >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-4xl font-bold text-white mb-4">Meet Our Team</h2>
@@ -107,7 +118,7 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-        </section>
+        </ScrollBlurSection>
 
         <Footer />
       </main>

@@ -10,6 +10,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Slider } from "@/components/ui/slider"
+import LoadingOverlay from "@/components/ui/loading-overlay"
+import { SlidingNumber } from "@/components/ui/sliding-number"
+
 import {
   Select,
   SelectContent,
@@ -24,6 +27,7 @@ import {
   ImagePlus,
   Mail,
   MapPin,
+  Minus,
   Phone,
   Plus,
   Printer,
@@ -153,6 +157,7 @@ export default function HomePage() {
 
   const [isPreviewMode, setIsPreviewMode] = useState(false)
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
 
 
   // Load settings and apply to invoice
@@ -172,7 +177,7 @@ export default function HomePage() {
             name: settings.businessName || prev.businessInfo.name,
             email: settings.email || prev.businessInfo.email,
             phone: settings.phone || prev.businessInfo.phone,
-            website: settings.website || prev.businessInfo.website,
+
             address: settings.address || prev.businessInfo.address,
           },
           currency: settings.currency || prev.currency,
@@ -254,7 +259,7 @@ export default function HomePage() {
       const base64String = e.target?.result as string;
       setLogoUrl(base64String);
       updateBusinessInfo("logo", base64String);
-      console.log("🖼️ Logo uploaded as base64");
+
     };
     reader.readAsDataURL(file);
   };
@@ -288,8 +293,17 @@ export default function HomePage() {
   }
 
   const handleGeneratePDF = async () => {
-  try {
-    const apiEndpoint = "https://oeegu8gbod.execute-api.us-east-1.amazonaws.com/default";
+    // Prevent multiple simultaneous PDF generation requests
+    if (isGeneratingPDF) {
+      console.warn('PDF generation already in progress')
+      return
+    }
+
+    // Show loading overlay immediately
+    setIsGeneratingPDF(true)
+    
+    try {
+      const apiEndpoint = "https://oeegu8gbod.execute-api.us-east-1.amazonaws.com/default";
 
     // Prepare data for Lambda
     const lambdaData = {
@@ -316,28 +330,23 @@ export default function HomePage() {
     if (response.status === 201 && result.pdfUrl) {
       // Save invoice using DynamoDB-first service
       try {
-        console.log("💾 Saving invoice to database...");
-        console.log("📄 Invoice data being sent:");
-        console.log("Business Name:", invoiceData.businessInfo.name);
-        console.log("Logo URL:", invoiceData.businessInfo.logoUrl || 'None');
+
         
         const { invoiceService } = await import("../lib/invoice-service");
         
         const savedInvoice = await invoiceService.saveInvoice(invoiceData);
-        console.log("Invoice saved:", savedInvoice);
+
         
         // Add PDF URL to the saved invoice
         await invoiceService.addPdfUrl(savedInvoice.id, result.pdfUrl);
-        console.log("PDF URL added to invoice");
+
         
-        const source = savedInvoice.source === 'dynamodb' ? 'DynamoDB' : 'Local Storage';
-        alert(`✅ Invoice saved to ${source} successfully!`);
         
         // Refresh analytics after saving
         refreshAnalytics();
       } catch (error) {
         console.error("Error saving invoice:", error);
-        alert("❌ Error saving invoice: " + error.message);
+        console.error("❌ Error saving invoice: " + (error instanceof Error ? error.message : String(error)));
       }
 
       // Automatically download the PDF to user's device
@@ -348,18 +357,16 @@ export default function HomePage() {
       link.click();
       document.body.removeChild(link);
       
-      // Show success message
-      if (invoiceData.businessInfo.logo) {
-        alert("✅ PDF generated with logo and downloaded!");
-      } else {
-        alert("✅ PDF generated and downloaded!");
-      }
+
     } else {
-      alert("Error generating PDF: " + (result.message || "Unknown error"));
+      console.error("Error generating PDF: " + (result.message || "Unknown error"));
     }
    } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error)
-    alert("Error: " + message)
+    console.error("Error: " + message)
+  } finally {
+    // Hide loading overlay when PDF generation completes (success or error)
+    setIsGeneratingPDF(false)
   }
 }
 
@@ -390,6 +397,15 @@ export default function HomePage() {
     }
   }, [])
 
+  // Cleanup loading state on unmount
+  useEffect(() => {
+    return () => {
+      if (isGeneratingPDF) {
+        setIsGeneratingPDF(false)
+      }
+    }
+  }, [])
+
   // Preview mode render
   if (isPreviewMode) {
     return (
@@ -410,9 +426,13 @@ export default function HomePage() {
                 Settings
               </Button>
             </Link>
-            <Button variant="outline" onClick={handleGeneratePDF}>
+            <Button 
+              variant="outline" 
+              onClick={handleGeneratePDF}
+              disabled={isGeneratingPDF}
+            >
               <Printer className="h-4 w-4 mr-2" />
-              Generate PDF
+              {isGeneratingPDF ? 'Generating...' : 'Generate PDF'}
             </Button>
             <Button onClick={handleSave}>
               <Send className="h-4 w-4 mr-2" />
@@ -530,6 +550,12 @@ export default function HomePage() {
             </div>
           )}
         </div>
+
+        {/* Loading Overlay for PDF Generation */}
+        <LoadingOverlay 
+          isVisible={isGeneratingPDF}
+          onComplete={() => setIsGeneratingPDF(false)}
+        />
       </div>
     )
   }
@@ -579,10 +605,24 @@ export default function HomePage() {
         </div>
         <div className="flex items-center gap-2">
           <Link to="/history">
-            <button className="rounded-md border border-input bg-input/30 hover:bg-input/50 px-4 py-2 text-sm transition-colors">View History</button>
+            <button 
+              type="button"
+              className="rounded-md border border-input bg-input/30 hover:bg-input/50 px-4 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+              onMouseEnter={(e) => e.currentTarget.classList.add('bg-input/50')}
+              onMouseLeave={(e) => e.currentTarget.classList.remove('bg-input/50')}
+            >
+              View History
+            </button>
           </Link>
           <Link to="/settings">
-            <button className="rounded-md border border-input bg-input/30 hover:bg-input/50 px-4 py-2 text-sm transition-colors">Settings</button>
+            <button 
+              type="button"
+              className="rounded-md border border-input bg-input/30 hover:bg-input/50 px-4 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+              onMouseEnter={(e) => e.currentTarget.classList.add('bg-input/50')}
+              onMouseLeave={(e) => e.currentTarget.classList.remove('bg-input/50')}
+            >
+              Settings
+            </button>
           </Link>
           <button onClick={handleSave} className="rounded-md border border-input bg-input/30 hover:bg-input/50 px-4 py-2 text-sm transition-colors">Save Draft</button>
           <button onClick={handlePreview} className="rounded-md bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 text-sm transition-colors flex items-center gap-2">
@@ -835,7 +875,7 @@ export default function HomePage() {
                 value={invoiceData.status || 'pending'}
                 onChange={(e) => {
                   const value = e.target.value as 'pending' | 'paid' | 'overdue' | 'cancelled';
-                  console.log('Status changed to:', value);
+
                   setInvoiceData((prev) => ({ ...prev, status: value }));
                 }}
                 className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
@@ -851,7 +891,12 @@ export default function HomePage() {
       </div>
 
       {/* Line Items */}
-      <section className="rounded-2xl border border-border/60 bg-background/30 backdrop-blur-xl p-6">
+      <section 
+        className="rounded-2xl border border-border/60 bg-background/30 backdrop-blur-xl p-6"
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-lg font-semibold">Line Items</h2>
@@ -878,41 +923,80 @@ export default function HomePage() {
               </div>
               <div className="col-span-4 md:col-span-2">
                 <Label htmlFor={`quantity-${item.id}`}>Qty</Label>
-                <div className="space-y-2">
-                  <Input
-                    id={`quantity-${item.id}`}
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={item.quantity}
-                    onChange={(e) => updateLineItem(item.id, "quantity", Number(e.target.value))}
-                  />
-                  <Slider
-                    value={item.quantity}
-                    onValueChange={(value) => updateLineItem(item.id, "quantity", value)}
-                    min={1}
-                    max={50}
-                    step={1}
-                  />
+                <div 
+                  className="flex items-center space-x-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onFocus={(e) => {
+                    e.stopPropagation();
+                  }}
+                >
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      if (item.quantity > 1) {
+                        updateLineItem(item.id, "quantity", item.quantity - 1);
+                      }
+                    }}
+                    className="h-8 w-8 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground flex items-center justify-center cursor-pointer select-none"
+                    style={{ 
+                      opacity: item.quantity <= 1 ? 0.5 : 1,
+                      pointerEvents: item.quantity <= 1 ? 'none' : 'auto'
+                    }}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </div>
+                  <div className="h-8 flex items-center px-3 bg-background border border-input rounded-md text-sm font-mono min-w-[60px] justify-center">
+                    {item.quantity}
+                  </div>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      if (item.quantity < 50) {
+                        updateLineItem(item.id, "quantity", item.quantity + 1);
+                      }
+                    }}
+                    className="h-8 w-8 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground flex items-center justify-center cursor-pointer select-none"
+                    style={{ 
+                      opacity: item.quantity >= 50 ? 0.5 : 1,
+                      pointerEvents: item.quantity >= 50 ? 'none' : 'auto'
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </div>
                 </div>
               </div>
               <div className="col-span-4 md:col-span-2">
                 <Label htmlFor={`unitPrice-${item.id}`}>Unit Price</Label>
                 <div className="space-y-2">
-                  <Input
-                    id={`unitPrice-${item.id}`}
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={item.unitPrice}
-                    onChange={(e) => updateLineItem(item.id, "unitPrice", Number(e.target.value))}
-                  />
-                  <Slider
-                    value={item.unitPrice}
-                    onValueChange={(value) => updateLineItem(item.id, "unitPrice", value)}
+                  <div className="h-9 flex items-center px-3 bg-background border border-input rounded-md text-sm font-mono">
+                    ₹<SlidingNumber value={item.unitPrice} />
+                  </div>
+                  <input
+                    type="range"
                     min={0}
                     max={10000}
-                    step={1}
+                    step={10}
+                    value={item.unitPrice}
+                    onChange={(e) => updateLineItem(item.id, "unitPrice", Number(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-none"
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
                   />
                 </div>
               </div>
@@ -998,13 +1082,23 @@ export default function HomePage() {
               Save Draft
             </Button>
 
-            <Button onClick={handleGeneratePDF} className="w-full">
+            <Button 
+              onClick={handleGeneratePDF} 
+              className="w-full" 
+              disabled={isGeneratingPDF}
+            >
               <Printer className="h-4 w-4 mr-2" />
-              Export PDF
+              {isGeneratingPDF ? 'Generating...' : 'Export PDF'}
             </Button>
           </div>
         </section>
       </div>
+
+      {/* Loading Overlay for PDF Generation */}
+      <LoadingOverlay 
+        isVisible={isGeneratingPDF}
+        onComplete={() => setIsGeneratingPDF(false)}
+      />
     </div>
   )
 }
